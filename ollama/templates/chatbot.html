@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <style>
+        /* 기본 스타일 */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* 채팅박스 스타일 */
+        .chat-box {
+            width: 100%;
+            max-width: 600px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            box-sizing: border-box;
+        }
+
+        /* 대표 키워드 표시 스타일 */
+        .key-topic {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e74c3c;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        /* 메시지 스타일 */
+        .message {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 10px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .user {
+            background-color: #3498db;
+            color: white;
+            align-self: flex-start;
+        }
+
+        .bot {
+            background-color: #2ecc71;
+            color: white;
+            align-self: flex-end;
+        }
+
+        /* 입력란과 버튼 스타일 */
+        #messageInput {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 25px;
+            margin-right: 10px;
+            flex-grow: 1;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #messageInput:focus {
+            border-color: #3498db;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        /* 스크롤 처리 */
+        #chat {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* 입력과 버튼이 가로로 배치될 수 있도록 조정 */
+        .input-area {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-box">
+        <div class="key-topic" id="keyTopic">Loading...</div> <!-- 대표 키워드 표시 영역 -->
+        <div id="chat"></div>
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type your message..." onkeydown="handleKeyPress(event)">
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // 서버에서 대표 키워드 가져오기
+        fetch('/keytopic')
+            .then(response => response.json())
+            .then(data => {
+                const keyTopicDiv = document.getElementById('keyTopic');
+                keyTopicDiv.textContent = `대표 키워드: ${data.keytopic}`;
+            })
+            .catch(error => {
+                const keyTopicDiv = document.getElementById('keyTopic');
+                keyTopicDiv.textContent = "대표 키워드 로드 실패";
+            });
+
+        // 메시지 전송 함수
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const chatBox = document.getElementById('chat');
+            const userMessage = input.value;
+
+            if (!userMessage.trim()) return;
+
+            // 사용자 메시지 추가
+            const userDiv = document.createElement('div');
+            userDiv.className = 'message user';
+            userDiv.textContent = 'You: ' + userMessage;
+            chatBox.appendChild(userDiv);
+
+            // 입력 초기화
+            input.value = '';
+
+            // 서버에 메시지 전송
+            fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: userMessage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const botMessage = data.message || data.error;
+                const botDiv = document.createElement('div');
+                botDiv.className = 'message bot';
+                botDiv.textContent = 'Bot: ' + botMessage;
+                chatBox.appendChild(botDiv);
+
+                // 스크롤을 아래로 이동
+                chatBox.scrollTop = chatBox.scrollHeight;
+            })
+            .catch(error => {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'message bot';
+                errorDiv.textContent = 'Bot: Error occurred!';
+                chatBox.appendChild(errorDiv);
+            });
+        }
+
+        // Enter 키 처리 함수
+        function handleKeyPress(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+                event.preventDefault(); // 기본 Enter 동작 방지
+            }
+        }
+    </script>
+</body>
+</html>
